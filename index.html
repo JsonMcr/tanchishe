@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title></title>
+
+<style type="text/css">
+
+#btn{
+
+width: 200px;
+
+height: 300px;
+
+position: absolute;
+
+left: 620px;top: 10px;
+
+}
+
+[type=button]{
+
+width: 70px;
+
+height: 50px;
+
+margin-left: 20px;
+
+margin-top: 20px;
+
+background: lawngreen;
+
+outline: none;
+
+}
+
+#score{
+
+width: 50px;
+
+height: 50px;
+
+margin: 10px auto;
+
+line-height: 50px;
+
+font-size: 40px;
+
+text-align: center;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<canvas id="board" width="601" height="601" style="background: #ccc;display: block;"></canvas>
+
+<div id="btn">
+
+<input type="button" name="start" id="start" value="开始" onclick="startBtn()"/>
+
+<input type="button" name="end" id="end" value="暂停" onclick="endBtn()"/>
+
+<br /><br /><br />
+
+<p><center>得分:</center></p>
+
+<div id="score"></div>
+
+</div>
+
+ 
+
+</body>
+
+</html>
+
+<script type="text/javascript">
+
+var board = document.getElementById('board');
+
+var score = document.getElementById('score');
+
+var context = board.getContext('2d');
+
+//主要类
+
+var num = 0;
+
+score.innerHTML = num;//定义一个分数记录器
+
+var snakeArray = [];//定义一个存储每一节身体的数组;
+
+ 
+
+var aSnake = new Snake(20,0,'yellow')//游戏开始一节身体;
+
+snakeArray.push(aSnake)
+
+// aSnake.drwaSnake(context);
+
+ 
+
+var aFood = new Food(200,400)//定义一个食物
+
+var aboard = new canvasBoard();//定义一个画布
+
+aboard.drwaCanvas();
+
+aFood.drawFood();//定义一个食物;
+
+//控制方向和前进像素个数
+
+var speedX = 20;
+
+var speedY = 0;
+
+var x = 0;
+
+var y = 0;
+
+var timer = null;
+
+var lock = false;
+
+//游戏开始函数
+
+function startGame(t){
+
+var t = t;
+
+timer = setInterval(function(){
+
+context.clearRect(0,0,board.width,board.height);//清除画布
+
+var aboard = new canvasBoard();//定义一个画布
+
+aboard.drwaCanvas();
+
+aFood.drawFood();//定义一个食物;
+
+var FoodHit = FoodHitCheck(snakeArray[0],aFood);//检测和食物碰撞
+
+if(FoodHit){
+
+clearInterval(timer);
+
+timer = null;
+
+num++;
+
+score.innerHTML = num;//分数;
+
+aFood.x = randPlace();//改变随机位置
+
+aFood.y = randPlace();
+
+aFood.drawFood();
+
+addSnake(snakeArray);
+
+t -=10
+
+if(t <= 100){
+
+t=100;
+
+}
+
+startGame(t);
+
+}
+
+//操作上下左右
+
+document.onkeydown = function(event){
+
+var ev = event || window.event;
+
+Handle(ev);
+
+}
+
+var len = snakeArray.length;//缓存数组的长度
+
+snakeArray[len-1].x = snakeArray[0].x+speedX;
+
+snakeArray[len-1].y = snakeArray[0].y+speedY;
+
+var a = snakeArray.pop();
+
+snakeArray.unshift(a);
+
+for(var i = 0;i < snakeArray.length;i++){
+
+snakeArray[i].drwaSnake(context)
+
+}
+
+//判断和墙壁碰撞
+
+var isHit = HitCheck(snakeArray[0],board);
+
+if(isHit){
+
+clearInterval(timer)
+
+timer = null;
+
+alert('GAMEOVER');
+
+}
+
+//判断和身体相撞;
+
+for(var i = 2;i < snakeArray.length;i++){
+
+var selfHit = FoodHitCheck(snakeArray[0],snakeArray[i]);
+
+if(selfHit){
+
+clearInterval(timer)
+
+timer = null;
+
+alert('GAMEOVER');
+
+}
+
+}
+
+},t)
+
+}
+
+ 
+
+//开始按钮
+
+function startBtn(){
+
+if(!lock){
+
+startGame(200);
+
+lock = true;
+
+}
+
+}
+
+ 
+
+function endBtn(){
+
+clearInterval(timer);
+
+lock = false;
+
+}
+
+ 
+
+//操作类
+
+function Handle(ev){
+
+var evKeyCode = ev.keyCode;
+
+switch(evKeyCode){
+
+case 65:{
+
+if(speedX <= 0){speedX = -20;speedY = 0;}
+
+break;
+
+}
+
+case 87:{
+
+if(speedY <= 0){speedX = 0;speedY = -20;}
+
+break;
+
+}
+
+case 68:{
+
+if(speedX >= 0){speedX = 20;speedY = 0;}
+
+break;
+
+}
+
+case 83:{
+
+if(speedY >= 0){speedX = 0;speedY = 20;}
+
+break;
+
+}
+
+}
+
+}
+
+//加长身体;
+
+function addSnake(snakeArray){
+
+var l = snakeArray.length;
+
+var sX = snakeArray[l-1].x;
+
+var sY = snakeArray[l-1].y;
+
+var snake = new Snake(sX,sY,'red');
+
+snakeArray.push(snake);
+
+}
+
+ 
+
+ 
+
+//检测碰撞墙壁
+
+function HitCheck(snake,board){
+
+if(snake.x < 0 || snake.x > board.width || snake.y < 0 || snake.y > board.height){
+
+return true
+
+}
+
+return false;
+
+}
+
+//检测碰撞食物
+
+function FoodHitCheck(snake,food){
+
+if(!(snake.x < food.x || snake.x > food.x+18 || snake.y < food.y || snake.y > food.y+18)){
+
+return true
+
+}
+
+return false;
+
+}
+
+//随机位置
+
+function randPlace(){
+
+return (parseInt(Math.random()*30))*20;
+
+}
+
+ 
+
+//画布类
+
+function canvasBoard(){
+
+this.x = 20;//间距
+
+this.y = 20;//
+
+this.drwaCanvas = function(){
+
+context.beginPath();
+
+context.strokeStyle = '#ddd';
+
+context.lineWidth = 1;
+
+for(var i = 0;i < board.width/this.x;i++){
+
+context.moveTo(i*this.x+0.5,0);
+
+context.lineTo(i*this.x+0.5,board.height);
+
+}
+
+for(var i = 0;i < board.height/this.y;i++){
+
+context.moveTo(0,i*this.y+0.5);
+
+context.lineTo(board.width,i*this.y+0.5);
+
+}
+
+context.stroke();
+
+}
+
+}
+
+ 
+
+//蛇类
+
+function Snake(x,y,color){
+
+this.x = x;
+
+this.y = y;
+
+this.width = 20;
+
+this.height = 20;
+
+this.color = color;
+
+this.drwaSnake = function(context){
+
+context.beginPath();
+
+context.strokeStyle = "#ccc";
+
+context.strokeRect(this.x,this.y,this.width,this.height);
+
+context.fillStyle = this.color;
+
+context.fillRect(this.x,this.y,this.width,this.height)
+
+context.save();
+
+}
+
+}
+
+ 
+
+//食物类
+
+function Food(x,y){
+
+this.x = x;
+
+this.y = y;
+
+this.w = 20;
+
+this.h = 20;
+
+this.color = 'green';
+
+this.drawFood = function(){
+
+context.beginPath();
+
+context.fillStyle = this.color;
+
+context.fillRect(this.x,this.y,this.w,this.h)
+
+context.save();
+
+}
+
+}
+
+</script>
